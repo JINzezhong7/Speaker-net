@@ -13,7 +13,7 @@ from scipy import signal
 from speakerlab.utils.fileio import load_wav_scp
 
 
-class RDINODataset(Dataset):
+class SGITDINODataset(Dataset):
     def __init__(self, data, noise, reverb, local_frames,global_frames, n_mels, glb_num, local_num):
         print(data)
         self.noise = noise
@@ -35,6 +35,11 @@ class RDINODataset(Dataset):
             f_max=8000,
             pad=0,
             n_mels=self.n_mels
+        )
+        self.torchlc = transforms.LFCC(
+            sample_rate = 16000,
+            n_lfcc = 80 ,
+            speckwargs={'n_fft':512,'hop_length':160,'window_fn':torch.hamming_window} 
         )
         self.data = list(
             load_wav_scp(data).values()
@@ -91,12 +96,19 @@ class RDINODataset(Dataset):
         glb_audios_aug = np.concatenate(glb_audios_aug, axis=0)
         local_audios_aug = np.concatenate(local_audios_aug,axis=0)
         local_audios_aug = np.concatenate(local_audios_aug, axis=0).reshape(self.glb_num,-1)
-        audios_aug = np.concatenate((glb_audios_aug, local_audios_aug), axis=0)
+        # audios_aug = np.concatenate((glb_audios_aug, local_audios_aug), axis=0)
 
         with torch.no_grad():
             # To obtain even-numbered frames, we delete 100 points for 4s segments
-            feat = torch.FloatTensor(audios_aug[:, :63900])
-            feat = self.torchfb(feat)
+            glb_feat = torch.FloatTensor(glb_audios_aug[:,:63900])
+            local_feat = torch.FloatTensor(local_audios_aug[:,:63900])
+            glb_feat_fb = self.torchfb(glb_feat)
+            glb_feat_lc = self.torchlc(glb_feat)
+            local_feat = self.torchfb(local_feat)
+            feat = torch.cat((glb_feat_fb,glb_feat_lc,local_feat),axis=0)
+            # feat = torch.FloatTensor(audios_aug[:, :63900])
+            # feat = self.torchfb(feat)
+        # return local_feat, glb_feat
         return feat
 
     def __len__(self):

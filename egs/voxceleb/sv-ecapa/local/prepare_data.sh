@@ -83,11 +83,19 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   # musan
   find $(pwd)/${rawdata_dir}/musan/noise/free-sound -name "*.wav" | awk -F"/" '{print $(NF-2)"/"$(NF-1)"/"$NF,$0}' >${data}/musan/wav.scp
   # rirs
-  awk '{print $5}' $(pwd)/${rawdata_dir}/RIRS_NOISES/real_rirs_isotropic_noises/rir_list | xargs -I {} echo {} $(pwd)/${rawdata_dir}/{} > ${data}/rirs/wav.scp
+  awk '{print $5}' ${rawdata_dir}/RIRS_NOISES/real_rirs_isotropic_noises/rir_list | xargs -I {} echo {} ${rawdata_dir}/{} > ${data}/rirs/wav.scp
   # vox1
-  find $(pwd)/${rawdata_dir}/voxceleb1 -name "*.wav" | awk -F"/" '{print $(NF-2)"/"$(NF-1)"/"$NF,$0}' | sort >${data}/vox1/wav.scp
-  awk '{print $1}' ${data}/vox1/wav.scp | awk -F "/" '{print $0,$1}' >${data}/vox1/utt2spk
-  ./utils/utt2spk_to_spk2utt.pl ${data}/vox1/utt2spk >${data}/vox1/spk2utt
+  find $(pwd) ${rawdata_dir}/voxceleb1/dev -name "*.wav" | awk -F"/" '{print $(NF-2)"/"$(NF-1)"/"$NF,$0}' | sort >${data}/vox1/dev/wav.scp
+  awk '{print $1}' ${data}/vox1/dev/wav.scp | awk -F "/" '{print $0,$1}' >${data}/vox1/dev/utt2spk
+  ./utils/utt2spk_to_spk2utt.pl ${data}/vox1/dev/utt2spk >${data}/vox1/dev/spk2utt
+  # FFSVC2022 dev
+  find $(pwd) ${rawdata_dir}/FFSVC2022 -name "*.wav" | awk -F"/" '{print $(NF-2)"/"$(NF-1)"/"$NF,$0}' | sort >${data}/FFSVC2022/wav.scp
+  awk '{print $1}' ${data}/FFSVC2022/wav.scp | awk -F "/" '{print $0,$1}' >${data}/FFSVC2022/utt2spk
+  ./utils/utt2spk_to_spk2utt.pl ${data}/FFSVC2022/utt2spk >${data}/FFSVC2022/spk2utt
+  # FFSVC2020 train and dev
+  find /corpus/FFSVC2020/train_dev -name "*.wav" | awk -F"/" '{print $(NF-2)"/"$(NF-1)"/"$NF,$0}' | sort >${data}/FFSVC2020/wav.scp
+  awk '{print $1}' ${data}/FFSVC2020/wav.scp | awk -F "/" '{print $0,$1}' >${data}/FFSVC2020/utt2spk
+  ./utils/utt2spk_to_spk2utt.pl ${data}/FFSVC2020/utt2spk >${data}/FFSVC2020/spk2utt
   if [ ! -d ${data}/vox1/trials ]; then
     echo "Download trials for vox1 ..."
     mkdir -p ${data}/vox1/trials

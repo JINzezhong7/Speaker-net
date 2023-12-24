@@ -52,7 +52,8 @@ def main():
     config.checkpointer['args']['checkpoints_dir'] = os.path.join(args.exp_dir, 'models')
     config.checkpointer['args']['recoverables'] = {'embedding_model':embedding_model}
     checkpointer = build('checkpointer', config)
-    checkpointer.recover_if_possible(epoch=config.num_epoch, device=device)
+    # checkpointer.recover_if_possible(epoch=config.num_epoch, device=device)
+    checkpointer.recover_if_possible(epoch=40, device=device)
 
     embedding_model.to(device)
     embedding_model.eval()
@@ -76,7 +77,12 @@ def main():
             for k in local_k:
                 wav_path = data[k]
                 wav, fs = torchaudio.load(wav_path)
-                assert fs == config.sample_rate, f"The sample rate of wav is {fs} and inconsistent with that of the pretrained model."
+                if fs != config.sample_rate:
+                    print(f'[WARNING]: The sample rate of {wav_path} is not {config.sample_rate}, resample it.')
+                    wav, fs = torchaudio.sox_effects.apply_effects_tensor(
+                        wav, fs, effects=[['rate', str(config.sample_rate)]]
+                    )
+                # assert fs == config.sample_rate, f"The sample rate of wav is {fs} and inconsistent with that of the pretrained model."
                 feat = feature_extractor(wav)
                 feat = feat.unsqueeze(0)
                 feat = feat.to(device)

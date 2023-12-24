@@ -9,7 +9,7 @@ import torch.distributed as dist
 
 import speakerlab.utils.utils_rdino as utils_rdino
 
-class DINOLoss(nn.Module):
+class CROSS_DINOLoss(nn.Module):
     def __init__(
         self,
         out_dim,
@@ -23,7 +23,8 @@ class DINOLoss(nn.Module):
         center_momentum=0.9
     ):
         super().__init__()
-
+        self.batch_size = 38 * utils_rdino.get_world_size() #38 is the per batch size
+        self.weight = nn.parameter(torch.ones((2,4,self.batch_size)),requires_grad=True)
         self.student_temp = student_temp
         self.center_momentum = center_momentum
         self.ncrops = ncrops
@@ -51,7 +52,7 @@ class DINOLoss(nn.Module):
                 if v == iq:
                     # we skip cases where student and teacher operate on the same view
                     continue
-                loss = torch.sum(-q * F.log_softmax(student_out[v], dim=-1), dim=-1)
+                loss = torch.sum(self.weight[iq][v]*-q * F.log_softmax(student_out[v], dim=-1), dim=-1) ## give one group learnable parameter
                 total_loss += loss.mean()
                 n_loss_terms += 1
         total_loss /= n_loss_terms

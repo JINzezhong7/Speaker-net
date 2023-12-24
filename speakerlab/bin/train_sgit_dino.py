@@ -17,7 +17,7 @@ import speakerlab.utils.utils_rdino as utils_rdino
 from speakerlab.utils.config import build_config
 from speakerlab.utils.builder import build
 
-parser = argparse.ArgumentParser(description='Regularized DINO Framework Training')
+parser = argparse.ArgumentParser(description='SGIT DINO Framework Training')
 parser.add_argument('--config', default='', type=str, help='Config file')
 parser.add_argument('--seed', default=1234, type=int, help='Random seed for training.')
 parser.add_argument('--gpu', nargs='+', help='GPU id to use.')
@@ -78,10 +78,6 @@ def main():
     dino_loss = build('dino_loss', config)
     dino_loss.cuda()
 
-    # Prepare regularized terms loss
-    regularized_loss = build('regularized_loss', config)
-    regularized_loss.cuda()
-
     # Prepare optimizer
     params_groups = utils_rdino.get_params_groups(student)
     optimizer = torch.optim.SGD(params_groups, lr=0, momentum=0.9)
@@ -123,12 +119,12 @@ def main():
     start_epoch = to_restore["epoch"]
 
     start_time = time.time()
-    print("Starting RDINO training !")
+    print("Starting SGITDINO training !")
 
     for epoch in range(start_epoch, config.epochs):
         train_loader.sampler.set_epoch(epoch)
         # Training one epoch
-        train_stats = train_one_epoch(student, teacher, dino_loss, regularized_loss, train_loader, optimizer, \
+        train_stats = train_one_epoch(student, teacher, dino_loss, train_loader, optimizer, \
             lr_schedule, wd_schedule, momentum_schedule, epoch, config)
 
         # Write logs
@@ -149,7 +145,7 @@ def main():
                 f.write(json.dumps(log_stats) + "\n")
 
 
-def train_one_epoch(student, teacher, dino_loss, regularized_loss, train_loader, optimizer, lr_schedule, \
+def train_one_epoch(student, teacher, dino_loss, train_loader, optimizer, lr_schedule, \
                     wd_schedule, momentum_schedule, epoch, config):
 
     teacher.train()
@@ -174,15 +170,15 @@ def train_one_epoch(student, teacher, dino_loss, regularized_loss, train_loader,
             data = data.transpose(0,1).cuda()
             global_data = data[0: config.glb_num, :, :, :]
             global_data = global_data.reshape(-1, fbank_dim, frame_dim)
-            tea_reg_out, teacher_output = teacher(global_data,lfcc=False,specaug=False)
-            stu_reg_out, student_global_output = student(global_data,lfcc=False,specaug=False)
+            teacher_output = teacher(global_data,lfcc=False,specaug=False)
+            student_global_output = student(global_data,lfcc=False,specaug=False)
 
             # same global view -----> mask fbank
-            _, student_global_output_mask = student(global_data,lfcc=False,specaug=True)
+            student_global_output_mask = student(global_data,lfcc=False,specaug=True)
             # same global view -----> lfcc
             global_lfcc_data = data[config.glb_num:config.glb_num+2, :, :, :]
             global_lfcc_data = global_lfcc_data.reshape(-1, fbank_dim, frame_dim)
-            _, student_lfcc_output = student(global_lfcc_data,lfcc=True,specaug=False)
+            student_lfcc_output = student(global_lfcc_data,lfcc=True,specaug=False)
 
             local_data1 = data[config.glb_num+2, :, :, :]
             local_data2 = data[config.glb_num + 3, :, :, :]
@@ -194,26 +190,12 @@ def train_one_epoch(student, teacher, dino_loss, regularized_loss, train_loader,
             local_data = torch.cat((local_data1_1,local_data1_2,local_data2_1,local_data2_2), axis=0)
             # local_data = torch.cat((local_data1_1,local_data1_2),axis=0)
 
-            _, student_local_output = student(local_data,lfcc=False,specaug=False)
+            student_local_output = student(local_data,lfcc=False,specaug=False)
             student_output = torch.cat((student_global_output, student_local_output), axis=0)
             same_global_view_output = torch.cat((student_global_output_mask,student_lfcc_output),axis=0)
-            # locals = torch.cat(torch.unbind(locals,dim=1),dim=0).cuda()
-            # globals = torch.cat(torch.unbind(globals,dim=1),dim=0).cuda()
-            # teacher_output = teacher(globals)
-            # student_global_output = student(globals)
-            # student_local_output = student(locals)
-            # student_output = torch.cat((student_global_output, student_local_output), axis=0)
 
             d_loss = dino_loss(student_output, teacher_output, same_global_view_output, epoch)
-            reg_loss = regularized_loss(tea_reg_out, stu_reg_out)
-
-            begin_lambd = numpy.linspace(0.05, config.lambd, 10)
-            later_lambd = numpy.linspace(config.lambd, config.lambd, 60)
-            lambd_sche = numpy.concatenate((begin_lambd, later_lambd), axis=0)
-            lambd_cur = lambd_sche[epoch]
-
-            loss = d_loss + lambd_cur * reg_loss
-            # loss = d_loss
+            loss = d_loss
 
             if not math.isfinite(loss.item()):
                 raise Exception("Loss is {}, stopping training".format(loss.item()), force=True)
@@ -236,7 +218,6 @@ def train_one_epoch(student, teacher, dino_loss, regularized_loss, train_loader,
             # logging
             torch.cuda.synchronize()
             metric_logger.update(loss_dino=d_loss.item())
-            metric_logger.update(loss_reg=reg_loss.item())
             metric_logger.update(loss=loss.item())
             metric_logger.update(lr=optimizer.param_groups[0]["lr"])
             metric_logger.update(wd=optimizer.param_groups[0]["weight_decay"])

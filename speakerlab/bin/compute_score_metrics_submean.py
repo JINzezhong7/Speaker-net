@@ -43,8 +43,24 @@ def main():
 
         return data_dict
 
+    def mean (dict):
+        total_vector = None
+        count = 0
+        for key, vector in dict.item():
+            if total_vector is None:
+                total_vector = vector.reshape(1,-1)
+            else:
+                total_vector += vector.reshape(1,-1)
+            count +=1
+        avgemb = total_vector/count
+
+        return avgemb
+
     enrol_dict = collect(args.enrol_data)
     test_dict = collect(args.test_data)
+
+    # avgemb use for submean
+    avgemb = mean(collect(args.target_data))
 
     for trial in args.trials:
         scores = []
@@ -56,14 +72,13 @@ def main():
             lines = trial_f.readlines()
             for line in tqdm(lines, desc=f'scoring trial {trial_name}'):
                 pair = line.strip().split()
-                ## For FFSVC2022 1 and 2 col is the wav_path
-                enrol_emb, test_emb = enrol_dict[os.path.join("FFSVC2022/dev",pair[1])], test_dict[os.path.join("FFSVC2022/dev",pair[2])]
-                # enrol_emb, test_emb = enrol_dict[pair[0]], test_dict[pair[1]]
-                cosine_score = cosine_similarity(enrol_emb.reshape(1, -1),
-                                              test_emb.reshape(1, -1))[0][0]
+                enrol_emb, test_emb = enrol_dict[pair[0]], test_dict[pair[1]]
+                cosine_score = cosine_similarity(enrol_emb.reshape(1, -1)-avgemb,
+                                              test_emb.reshape(1, -1)-avgemb)[0][0]
                 # write the score
                 score_f.write(' '.join(pair)+' %.5f\n'%cosine_score)
                 scores.append(cosine_score)
+                ## for the FFSVC2022 dev trial 0 col is the label.
                 if pair[0] == '1' or pair[0] == 'target':
                     labels.append(1)
                 elif pair[0] == '0' or pair[0] == 'nontarget':

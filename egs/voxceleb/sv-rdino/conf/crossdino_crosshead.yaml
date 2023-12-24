@@ -1,0 +1,234 @@
+# Training config
+
+# inputs
+data:
+noise:
+reverb:
+
+# outputs
+exp_dir:
+
+# Data loader
+global_frames: 400
+local_frames: 200
+eval_frames: 350
+batch_size_per_gpu: 30 ## original is 52
+nDataLoaderThread: 16
+
+# Optimizer
+optimizer: "sgd"
+lr_ecapa: 0.2
+lr_resnet: 0.2
+min_lr: !!float 1e-5
+weight_decay: !!float 5e-5
+weight_decay_end: !!float 5e-5
+epochs: 100
+saveckp_freq: 2
+
+# Parameters for CROSSDINO
+glb_num: 2
+local_num: 4
+crop_total_num: 6
+
+norm_last_layer: "True"
+freeze_last_layer: 1
+clip_grad_ecapa: 3.0
+clip_grad_resnet: 3.0
+use_bn_in_head: True
+momentum_teacher: 0.996
+lamda_ecapa: 1.0
+lamda_resnet: 1.0
+# Warming up
+warmup_epochs: 20
+warmup_teacher_temp: 0.04
+teacher_temp: 0.07
+warmup_teacher_temp_epochs: 30
+
+# Model definition and saving
+n_mels: 80
+embed_dim_ecapa: 256
+embed_dim_resnet: 256
+out_dim: 65536
+
+# Evaluation metrics
+dcf_p_target: 0.05
+dcf_c_miss: 1
+dcf_c_fa: 1
+
+dataset:
+  obj: speakerlab.dataset.dataset_crossdino.CROSSDINODataset
+  args:
+    data: <data>
+    noise: <noise>
+    reverb: <reverb>
+    local_frames: <local_frames>
+    global_frames: <global_frames>
+    n_mels: <n_mels>
+    glb_num: <glb_num>
+    local_num: <local_num>
+
+dataloader:
+  obj: torch.utils.data.DataLoader
+  args:
+    dataset: <dataset>
+    batch_size: <batch_size_per_gpu>
+    num_workers: <nDataLoaderThread>
+    pin_memory: True
+    drop_last: True
+
+# backbone model
+student_backbone_ecapa:
+  obj: speakerlab.models.rdino.ECAPA_TDNN.ECAPA_TDNN
+  args:
+    input_size: <n_mels>
+    channels: [512, 512, 512, 512, 1536]
+
+teacher_backbone_ecapa:
+  obj: speakerlab.models.rdino.ECAPA_TDNN.ECAPA_TDNN
+  args:
+    input_size: <n_mels>
+    channels: [512, 512, 512, 512, 1536]
+
+
+student_backbone_resnet:
+  obj: speakerlab.models.rdino.resnet.ResNet
+  args: 
+    num_blocks: [3,4,6,3]
+
+teacher_backbone_resnet:
+  obj: speakerlab.models.rdino.resnet.ResNet
+  args: 
+    num_blocks: [3,4,6,3]
+
+# self head model 
+self_student_head_ecapa:
+  obj: speakerlab.models.rdino.DINO_Head.DINOHead
+  args:
+    in_dim: <embed_dim_ecapa>
+    out_dim: <out_dim>
+    use_bn: <use_bn_in_head>
+
+self_teacher_head_ecapa:
+  obj: speakerlab.models.rdino.DINO_Head.DINOHead
+  args:
+    in_dim: <embed_dim_ecapa>
+    out_dim: <out_dim>
+    use_bn: <use_bn_in_head>
+
+self_student_head_resnet:
+  obj: speakerlab.models.rdino.DINO_Head.DINOHead
+  args:
+    in_dim: <embed_dim_resnet>
+    out_dim: <out_dim>
+    use_bn: <use_bn_in_head>
+
+self_teacher_head_resnet:
+  obj: speakerlab.models.rdino.DINO_Head.DINOHead
+  args:
+    in_dim: <embed_dim_resnet>
+    out_dim: <out_dim>
+    use_bn: <use_bn_in_head>
+
+# cross head
+cross_student_head_ecapa:
+  obj: speakerlab.models.rdino.CROSSDINO_Head.CROSSDINOHead
+  args:
+    in_dim: <embed_dim_ecapa>
+    out_dim: <out_dim>
+    use_bn: <use_bn_in_head>
+
+cross_student_head_resnet:
+  obj: speakerlab.models.rdino.CROSSDINO_Head.CROSSDINOHead
+  args:
+    in_dim: <embed_dim_resnet>
+    out_dim: <out_dim>
+    use_bn: <use_bn_in_head>
+
+cross_teacher_head_ecapa:
+  obj: speakerlab.models.rdino.CROSSDINO_Head.CROSSDINOHead
+  args:
+    in_dim: <embed_dim_ecapa>
+    out_dim: <out_dim>
+    use_bn: <use_bn_in_head>
+
+cross_teacher_head_resnet:
+  obj: speakerlab.models.rdino.CROSSDINO_Head.CROSSDINOHead
+  args:
+    in_dim: <embed_dim_resnet>
+    out_dim: <out_dim>
+    use_bn: <use_bn_in_head>
+
+# model combiner
+student_ecapa:
+  obj: speakerlab.models.rdino.combiner.Combiner
+  args:
+    backbone: <student_backbone_ecapa>
+    self_head: <self_student_head_ecapa>
+    cross_head: <cross_student_head_ecapa>
+
+teacher_ecapa:
+  obj: speakerlab.models.rdino.combiner.Combiner
+  args:
+    backbone: <teacher_backbone_ecapa>
+    self_head: <self_teacher_head_ecapa>
+    cross_head: <cross_teacher_head_ecapa>
+
+student_resnet:
+  obj: speakerlab.models.rdino.combiner.Combiner
+  args:
+      backbone: <student_backbone_resnet>
+      self_head: <self_student_head_resnet>
+      cross_head: <cross_student_head_resnet>
+
+teacher_resnet:
+  obj: speakerlab.models.rdino.combiner.Combiner
+  args:
+      backbone: <teacher_backbone_resnet>
+      self_head: <self_teacher_head_resnet>
+      cross_head: <cross_teacher_head_resnet>
+
+# loss
+self_loss_ecapa:
+  obj: speakerlab.loss.dino_loss.DINOLoss
+  args:
+    out_dim: <out_dim>
+    ncrops: <crop_total_num>
+    ntcrops: <glb_num>
+    warmup_teacher_temp: <warmup_teacher_temp>
+    teacher_temp: <teacher_temp>
+    warmup_teacher_temp_epochs: <warmup_teacher_temp_epochs>
+    nepochs: <epochs>
+
+self_loss_resnet:
+  obj: speakerlab.loss.dino_loss.DINOLoss
+  args:
+    out_dim: <out_dim>
+    ncrops: <crop_total_num>
+    ntcrops: <glb_num>
+    warmup_teacher_temp: <warmup_teacher_temp>
+    teacher_temp: <teacher_temp>
+    warmup_teacher_temp_epochs: <warmup_teacher_temp_epochs>
+    nepochs: <epochs>
+
+cross_loss_ecapa:
+  obj: speakerlab.loss.dino_loss.DINOLoss
+  args:
+    out_dim: <out_dim>
+    ncrops: <crop_total_num>
+    ntcrops: <glb_num>
+    warmup_teacher_temp: <warmup_teacher_temp>
+    teacher_temp: <teacher_temp>
+    warmup_teacher_temp_epochs: <warmup_teacher_temp_epochs>
+    nepochs: <epochs>
+
+cross_loss_resnet:
+  obj: speakerlab.loss.dino_loss.DINOLoss
+  args:
+    out_dim: <out_dim>
+    ncrops: <crop_total_num>
+    ntcrops: <glb_num>
+    warmup_teacher_temp: <warmup_teacher_temp>
+    teacher_temp: <teacher_temp>
+    warmup_teacher_temp_epochs: <warmup_teacher_temp_epochs>
+    nepochs: <epochs>
+

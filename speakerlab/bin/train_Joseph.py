@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
-
+from transformers import Wav2Vec2Model,Wav2Vec2ForCTC,WavLMForCTC,HubertForCTC
 from speakerlab.utils.utils import set_seed, get_logger, AverageMeters, ProgressMeter, accuracy
 from speakerlab.utils.config import build_config
 from speakerlab.utils.builder import build
@@ -50,6 +50,7 @@ def main():
     train_dataloader = build('dataloader', config)
 
     # model
+    # speaker embedding model
     embedding_model = build('embedding_model', config)
     if hasattr(config, 'speed_pertub') and config.speed_pertub:
         config.num_classes = len(config.label_encoder) * 3
@@ -60,14 +61,21 @@ def main():
     model = nn.Sequential(embedding_model, classifier)
     model.cuda()
     model = torch.nn.parallel.DistributedDataParallel(model)
-
+    
+    # speech recognition model
+    speech_model = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-base-960h")
+    speech_model.cuda()
+    # frozen the speech model parameters
+    for param in speech_model.parameters():
+        param.requires_grad = False
+    speech_model = torch.nn.parallel.DistributedDataParallel(speech_model)
     # optimizer
     config.optimizer['args']['params'] = model.parameters()
     optimizer = build('optimizer', config)
 
     # loss function
     criterion = build('loss', config)
-
+    speech_loss = build('speech_loss',config)
     # scheduler
     config.lr_scheduler['args']['step_per_epoch'] = len(train_dataloader)
     lr_scheduler = build('lr_scheduler', config)
@@ -93,7 +101,9 @@ def main():
         train_stats = train(
             train_dataloader,
             model,
+            speech_model,
             criterion,
+            speech_loss,
             optimizer,
             epoch,
             lr_scheduler,
@@ -115,11 +125,12 @@ def main():
 
         dist.barrier()
 
-def train(train_loader, model, criterion, optimizer, epoch, lr_scheduler, margin_scheduler, logger, config, rank):
+def train(train_loader, model,speech_model, criterion,speech_loss, optimizer, epoch, lr_scheduler, margin_scheduler, logger, config, rank):
     train_stats = AverageMeters()
     train_stats.add('Time', ':6.3f')
     train_stats.add('Data', ':6.3f')
-    train_stats.add('Loss', ':.4e')
+    train_stats.add('Speaker_Loss', ':.4e')
+    train_stats.add('Speech_Loss', ':.4e')
     train_stats.add('Acc@1', ':6.2f')
     train_stats.add('Lr', ':.3e')
     train_stats.add('Margin', ':.3f')
@@ -146,17 +157,23 @@ def train(train_loader, model, criterion, optimizer, epoch, lr_scheduler, margin
         y = y.cuda(non_blocking=True)
 
         # compute output
-        output = model(x)
+        embedding,frame = model.embedding_model(x)[0],model.embedding_model(x)[1]
+        output = model.classifier(embedding)
         loss = criterion(output, y)
         acc1 = accuracy(output, y)
 
+        speech_output = speech_model(x)
+        loss2 = speech_loss(speech_output,frame)
+        total_loss = loss + config.lamda * loss2
         # compute gradient and do optimizer step
         optimizer.zero_grad()
-        loss.backward()
+        total_loss.backward()
         optimizer.step()
 
         # recording
-        train_stats.update('Loss', loss.item(), x.size(0))
+        train_stats.update('Total_Loss', total_loss.item(), x.size(0))
+        train_stats.update('Speaker_Loss', loss.item(), x.size(0))
+        train_stats.update('Speech_Loss', loss2.item(), x.size(0))
         train_stats.update('Acc@1', acc1.item(), x.size(0))
         train_stats.update('Lr', optimizer.param_groups[0]["lr"])
         train_stats.update('Margin', margin_scheduler.get_margin())
@@ -168,7 +185,7 @@ def train(train_loader, model, criterion, optimizer, epoch, lr_scheduler, margin
         end = time.time()
 
     key_stats={
-        'Avg_loss': train_stats.avg('Loss'),
+        'Avg_loss': train_stats.avg('Total_loss'),
         'Avg_acc': train_stats.avg('Acc@1'),
         'Lr_value': train_stats.val('Lr')
     }

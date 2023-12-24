@@ -357,7 +357,7 @@ class ECAPA_TDNN(torch.nn.Module):
         self,
         input_size,
         device="cpu",
-        lin_neurons=256,
+        lin_neurons=192,
         activation=torch.nn.ReLU,
         channels=[512, 512, 512, 512, 1536],
         kernel_sizes=[5, 3, 3, 3, 1],
@@ -367,16 +367,11 @@ class ECAPA_TDNN(torch.nn.Module):
         se_channels=128,
         global_context=True,
         groups=[1, 1, 1, 1, 1],
-        log_input=True,
-        n_mels=80,
     ):
 
         super().__init__()
         assert len(channels) == len(kernel_sizes)
         assert len(channels) == len(dilations)
-        self.instancenorm   = nn.InstanceNorm1d(n_mels)
-        self.n_mels     = n_mels
-        self.log_input  = log_input
         self.channels = channels
         self.blocks = nn.ModuleList()
 
@@ -432,18 +427,31 @@ class ECAPA_TDNN(torch.nn.Module):
             kernel_size=1,
         )
 
+        ## phonetic matching part
+        self.pool = nn.MaxPool2d(kernel_size=(1, 202 - 100 + 1), stride=(1, 1))
+        self.fullyconnect   = nn.Linear(1024,32)
+
     def forward(self, x, lengths=None):
         """Returns the embedding vector.
+
+        Arguments
+        ---------
+        x : torch.Tensor
+            Tensor of shape (batch, time, channel).
         """
-        x = x + 1e-6
-        if self.log_input:
-            x = x.log()
-        x = self.instancenorm(x).detach()
+        # Minimize transpose for efficiency
+        x = x.transpose(1, 2)
 
         xl = []
-        for layer in self.blocks:
+        for i, layer in enumerate(self.blocks):
             try:
                 x = layer(x, lengths=lengths)
+                if i ==0:
+                    print("feed the TDNN layer output to speech model")
+                    frame = x
+                    frame = self.pool(frame) ## (Batch_size, dimension:(1536), T:(100))
+                    frame = frame.transpose(1,2) ## (Batch_size, T:(100), dimension:(1536))
+                    frame = self.fullyconnect(frame) ## (Batch_size, T:(100),dimension:(768))
             except TypeError:
                 x = layer(x)
             xl.append(x)
@@ -462,4 +470,4 @@ class ECAPA_TDNN(torch.nn.Module):
         x = x.transpose(1, 2)
         x = x.squeeze(1)
 
-        return x
+        return x, frame

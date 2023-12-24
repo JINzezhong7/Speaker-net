@@ -9,7 +9,7 @@ import torch.distributed as dist
 
 import speakerlab.utils.utils_rdino as utils_rdino
 
-class DINOLoss(nn.Module):
+class SGITDINOLoss(nn.Module):
     def __init__(
         self,
         out_dim,
@@ -32,13 +32,14 @@ class DINOLoss(nn.Module):
         self.teacher_temp_schedule = np.concatenate((np.linspace(warmup_teacher_temp, teacher_temp, warmup_teacher_temp_epochs),
                                                      np.ones(nepochs - warmup_teacher_temp_epochs) * teacher_temp))
 
-    def forward(self, student_output, teacher_output, epoch):
+    def forward(self, student_output, teacher_output,same_global_view_output, epoch):
         """
         Cross-entropy between softmax outputs of the teacher and student networks.
         """
         student_out = student_output / self.student_temp
         student_out = student_out.chunk(self.ncrops)
-
+        same_global_view_output = same_global_view_output/self.student_temp
+        same_global_view_output = same_global_view_output.chunk(4)
         # teacher centering and sharpening
         temp = self.teacher_temp_schedule[epoch]
         teacher_out = F.softmax((teacher_output - self.center) / temp, dim=-1)
@@ -50,11 +51,16 @@ class DINOLoss(nn.Module):
             for v in range(len(student_out)):
                 if v == iq:
                     # we skip cases where student and teacher operate on the same view
-                    continue
-                loss = torch.sum(-q * F.log_softmax(student_out[v], dim=-1), dim=-1)
-                total_loss += loss.mean()
-                n_loss_terms += 1
-        total_loss /= n_loss_terms
+                    loss1 = torch.sum(-q * F.log_softmax(same_global_view_output[v],dim=-1),dim=-1)
+                    loss2 = torch.sum(-q * F.log_softmax(same_global_view_output[v+2],dim=-1),dim=-1)
+                    total_loss = total_loss + loss1.mean()+loss2.mean()
+                    flag = 2
+                else:
+                    loss = torch.sum(-q * F.log_softmax(student_out[v], dim=-1), dim=-1)
+                    total_loss = total_loss + loss.mean()
+                    flag =1
+                n_loss_terms = n_loss_terms + flag
+        total_loss = total_loss / n_loss_terms
         self.update_center(teacher_output)
         return total_loss
 

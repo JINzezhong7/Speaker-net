@@ -39,7 +39,7 @@ cov_coeff: 1.0
 lambd: 0.2
 
 # Warming up
-warmup_epochs: 10
+warmup_epochs: 20
 warmup_teacher_temp: 0.04
 teacher_temp: 0.07
 warmup_teacher_temp_epochs: 30
@@ -55,7 +55,7 @@ dcf_c_miss: 1
 dcf_c_fa: 1
 
 dataset:
-  obj: speakerlab.dataset.dataset_rdino.RDINODataset
+  obj: speakerlab.dataset.dataset_sgitdino.SGITDINODataset
   args:
     data: <data>
     noise: <noise>
@@ -89,7 +89,7 @@ teacher_ecapa:
     channels: [512, 512, 512, 512, 1536]
 
 student_head:
-  obj: speakerlab.models.rdino.RRDINO_Head.RDINOHead
+  obj: speakerlab.models.rdino.RDINO_Head.RDINOHead
   args:
     in_dim: <embed_dim>
     out_dim: <out_dim>
@@ -115,7 +115,7 @@ teacher_model:
     head: <teacher_head>
 
 dino_loss:
-  obj: speakerlab.loss.dino_loss.DINOLoss
+  obj: speakerlab.loss.sgit_dino_loss.SGITDINOLoss
   args:
     out_dim: <out_dim>
     ncrops: <crop_total_num>
@@ -125,9 +125,8 @@ dino_loss:
     warmup_teacher_temp_epochs: <warmup_teacher_temp_epochs>
     nepochs: <epochs>
 
-
 regularized_loss:
-  obj: speakerlab.loss.dino_loss.RegLoss
+  obj: speakerlab.loss.sgit_dino_loss.RegLoss
   args:
     out_dim: <out_dim>
     std_coeff: <std_coeff>

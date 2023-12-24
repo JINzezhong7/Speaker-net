@@ -13,7 +13,7 @@ from scipy import signal
 from speakerlab.utils.fileio import load_wav_scp
 
 
-class RDINODataset(Dataset):
+class CROSSDINODataset(Dataset):
     def __init__(self, data, noise, reverb, local_frames,global_frames, n_mels, glb_num, local_num):
         print(data)
         self.noise = noise
