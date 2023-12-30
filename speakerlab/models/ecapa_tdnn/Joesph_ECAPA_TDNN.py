@@ -347,7 +347,7 @@ class SERes2NetBlock(nn.Module):
         return x + residual
 
 
-class ECAPA_TDNN(torch.nn.Module):
+class Joesoh_ECAPA_TDNN(torch.nn.Module):
     """An implementation of the speaker embedding model in a paper.
     "ECAPA-TDNN: Emphasized Channel Attention, Propagation and Aggregation in
     TDNN Based Speaker Verification" (https://arxiv.org/abs/2005.07143).
@@ -428,7 +428,7 @@ class ECAPA_TDNN(torch.nn.Module):
         )
 
         ## phonetic matching part
-        self.pool = nn.MaxPool2d(kernel_size=(1, 202 - 100 + 1), stride=(1, 1))
+        self.pool = nn.MaxPool2d(kernel_size=(1, 298 - 149 + 1), stride=(1, 1))
         self.fullyconnect   = nn.Linear(1024,32)
 
     def forward(self, x, lengths=None):
@@ -447,13 +447,19 @@ class ECAPA_TDNN(torch.nn.Module):
             try:
                 x = layer(x, lengths=lengths)
                 if i ==0:
-                    print("feed the TDNN layer output to speech model")
+                    # print("feed the TDNN layer output to speech model")
                     frame = x
                     frame = self.pool(frame) ## (Batch_size, dimension:(1536), T:(100))
                     frame = frame.transpose(1,2) ## (Batch_size, T:(100), dimension:(1536))
                     frame = self.fullyconnect(frame) ## (Batch_size, T:(100),dimension:(768))
             except TypeError:
                 x = layer(x)
+                if i ==0:
+                    # print("feed the TDNN layer output to speech model")
+                    frame = x
+                    frame = self.pool(frame) ## (Batch_size, dimension:(1536), T:(100))
+                    frame = frame.transpose(1,2) ## (Batch_size, T:(100), dimension:(1536))
+                    frame = self.fullyconnect(frame) ## (Batch_size, T:(100),dimension:(768))
             xl.append(x)
 
         # Multi-layer feature aggregation

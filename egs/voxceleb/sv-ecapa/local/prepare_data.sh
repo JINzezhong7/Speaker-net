@@ -79,38 +79,38 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   echo "Prepare wav.scp for each dataset ..."
   export LC_ALL=C # kaldi config
 
-  mkdir -p ${data}/musan ${data}/rirs ${data}/vox1 ${data}/vox2_dev
-  # musan
-  find $(pwd)/${rawdata_dir}/musan/noise/free-sound -name "*.wav" | awk -F"/" '{print $(NF-2)"/"$(NF-1)"/"$NF,$0}' >${data}/musan/wav.scp
-  # rirs
-  awk '{print $5}' ${rawdata_dir}/RIRS_NOISES/real_rirs_isotropic_noises/rir_list | xargs -I {} echo {} ${rawdata_dir}/{} > ${data}/rirs/wav.scp
-  # vox1
-  find $(pwd) ${rawdata_dir}/voxceleb1/dev -name "*.wav" | awk -F"/" '{print $(NF-2)"/"$(NF-1)"/"$NF,$0}' | sort >${data}/vox1/dev/wav.scp
-  awk '{print $1}' ${data}/vox1/dev/wav.scp | awk -F "/" '{print $0,$1}' >${data}/vox1/dev/utt2spk
-  ./utils/utt2spk_to_spk2utt.pl ${data}/vox1/dev/utt2spk >${data}/vox1/dev/spk2utt
+  # mkdir -p ${data}/musan ${data}/rirs ${data}/vox1 ${data}/vox2_dev
+  # # musan
+  # find $(pwd)/${rawdata_dir}/musan/noise/free-sound -name "*.wav" | awk -F"/" '{print $(NF-2)"/"$(NF-1)"/"$NF,$0}' >${data}/musan/wav.scp
+  # # rirs
+  # awk '{print $5}' ${rawdata_dir}/RIRS_NOISES/real_rirs_isotropic_noises/rir_list | xargs -I {} echo {} ${rawdata_dir}/{} > ${data}/rirs/wav.scp
+  # # vox1
+  # find $(pwd) ${rawdata_dir}/voxceleb1/dev -name "*.wav" | awk -F"/" '{print $(NF-2)"/"$(NF-1)"/"$NF,$0}' | sort >${data}/vox1/dev/wav.scp
+  # awk '{print $1}' ${data}/vox1/dev/wav.scp | awk -F "/" '{print $0,$1}' >${data}/vox1/dev/utt2spk
+  # ./utils/utt2spk_to_spk2utt.pl ${data}/vox1/dev/utt2spk >${data}/vox1/dev/spk2utt
   # FFSVC2022 dev
   find $(pwd) ${rawdata_dir}/FFSVC2022 -name "*.wav" | awk -F"/" '{print $(NF-2)"/"$(NF-1)"/"$NF,$0}' | sort >${data}/FFSVC2022/wav.scp
   awk '{print $1}' ${data}/FFSVC2022/wav.scp | awk -F "/" '{print $0,$1}' >${data}/FFSVC2022/utt2spk
   ./utils/utt2spk_to_spk2utt.pl ${data}/FFSVC2022/utt2spk >${data}/FFSVC2022/spk2utt
-  # FFSVC2020 train and dev
-  find /corpus/FFSVC2020/train_dev -name "*.wav" | awk -F"/" '{print $(NF-2)"/"$(NF-1)"/"$NF,$0}' | sort >${data}/FFSVC2020/wav.scp
-  awk '{print $1}' ${data}/FFSVC2020/wav.scp | awk -F "/" '{print $0,$1}' >${data}/FFSVC2020/utt2spk
-  ./utils/utt2spk_to_spk2utt.pl ${data}/FFSVC2020/utt2spk >${data}/FFSVC2020/spk2utt
-  if [ ! -d ${data}/vox1/trials ]; then
-    echo "Download trials for vox1 ..."
-    mkdir -p ${data}/vox1/trials
-    wget --no-check-certificate https://www.robots.ox.ac.uk/~vgg/data/voxceleb/meta/veri_test2.txt -O ${data}/vox1/trials/vox1-O\(cleaned\).txt
-    wget --no-check-certificate https://www.robots.ox.ac.uk/~vgg/data/voxceleb/meta/list_test_hard2.txt -O ${data}/vox1/trials/vox1-H\(cleaned\).txt
-    wget --no-check-certificate https://www.robots.ox.ac.uk/~vgg/data/voxceleb/meta/list_test_all2.txt -O ${data}/vox1/trials/vox1-E\(cleaned\).txt
-    # transform them into kaldi trial format
-    awk '{if($1==0)label="nontarget";else{label="target"}; print $2,$3,label}' ${data}/vox1/trials/vox1-O\(cleaned\).txt >${data}/vox1/trials/vox1_O_cleaned.trial
-    awk '{if($1==0)label="nontarget";else{label="target"}; print $2,$3,label}' ${data}/vox1/trials/vox1-H\(cleaned\).txt >${data}/vox1/trials/vox1_H_cleaned.trial
-    awk '{if($1==0)label="nontarget";else{label="target"}; print $2,$3,label}' ${data}/vox1/trials/vox1-E\(cleaned\).txt >${data}/vox1/trials/vox1_E_cleaned.trial
-  fi
-  # vox2
-  find $(pwd)/${rawdata_dir}/voxceleb2_wav -name "*.wav" | awk -F"/" '{print $(NF-2)"/"$(NF-1)"/"$NF,$0}' | sort >${data}/vox2_dev/wav.scp
-  awk '{print $1}' ${data}/vox2_dev/wav.scp | awk -F "/" '{print $0,$1}' >${data}/vox2_dev/utt2spk
-  ./utils/utt2spk_to_spk2utt.pl ${data}/vox2_dev/utt2spk >${data}/vox2_dev/spk2utt
+  # # FFSVC2020 train and dev
+  # find /corpus/FFSVC2020/train_dev -name "*.wav" | awk -F"/" '{print $(NF-2)"/"$(NF-1)"/"$NF,$0}' | sort >${data}/FFSVC2020/wav.scp
+  # awk '{print $1}' ${data}/FFSVC2020/wav.scp | awk -F "/" '{print $0,$1}' >${data}/FFSVC2020/utt2spk
+  # ./utils/utt2spk_to_spk2utt.pl ${data}/FFSVC2020/utt2spk >${data}/FFSVC2020/spk2utt
+  # if [ ! -d ${data}/vox1/trials ]; then
+  #   echo "Download trials for vox1 ..."
+  #   mkdir -p ${data}/vox1/trials
+  #   wget --no-check-certificate https://www.robots.ox.ac.uk/~vgg/data/voxceleb/meta/veri_test2.txt -O ${data}/vox1/trials/vox1-O\(cleaned\).txt
+  #   wget --no-check-certificate https://www.robots.ox.ac.uk/~vgg/data/voxceleb/meta/list_test_hard2.txt -O ${data}/vox1/trials/vox1-H\(cleaned\).txt
+  #   wget --no-check-certificate https://www.robots.ox.ac.uk/~vgg/data/voxceleb/meta/list_test_all2.txt -O ${data}/vox1/trials/vox1-E\(cleaned\).txt
+  #   # transform them into kaldi trial format
+  #   awk '{if($1==0)label="nontarget";else{label="target"}; print $2,$3,label}' ${data}/vox1/trials/vox1-O\(cleaned\).txt >${data}/vox1/trials/vox1_O_cleaned.trial
+  #   awk '{if($1==0)label="nontarget";else{label="target"}; print $2,$3,label}' ${data}/vox1/trials/vox1-H\(cleaned\).txt >${data}/vox1/trials/vox1_H_cleaned.trial
+  #   awk '{if($1==0)label="nontarget";else{label="target"}; print $2,$3,label}' ${data}/vox1/trials/vox1-E\(cleaned\).txt >${data}/vox1/trials/vox1_E_cleaned.trial
+  # fi
+  # # vox2
+  # find $(pwd)/${rawdata_dir}/voxceleb2_wav -name "*.wav" | awk -F"/" '{print $(NF-2)"/"$(NF-1)"/"$NF,$0}' | sort >${data}/vox2_dev/wav.scp
+  # awk '{print $1}' ${data}/vox2_dev/wav.scp | awk -F "/" '{print $0,$1}' >${data}/vox2_dev/utt2spk
+  # ./utils/utt2spk_to_spk2utt.pl ${data}/vox2_dev/utt2spk >${data}/vox2_dev/spk2utt
 
   echo "Success !!!"
 fi

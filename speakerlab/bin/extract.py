@@ -53,7 +53,7 @@ def main():
     config.checkpointer['args']['recoverables'] = {'embedding_model':embedding_model}
     checkpointer = build('checkpointer', config)
     # checkpointer.recover_if_possible(epoch=config.num_epoch, device=device)
-    checkpointer.recover_if_possible(epoch=40, device=device)
+    checkpointer.recover_if_possible(epoch=70, device=device)
 
     embedding_model.to(device)
     embedding_model.eval()
@@ -86,7 +86,7 @@ def main():
                 feat = feature_extractor(wav)
                 feat = feat.unsqueeze(0)
                 feat = feat.to(device)
-                emb = embedding_model(feat).detach().cpu().numpy()
+                emb = embedding_model(feat)[0].detach().cpu().numpy()
                 writer(k, emb)
 
 if __name__ == "__main__":

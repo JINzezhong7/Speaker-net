@@ -57,16 +57,16 @@ def main():
             for line in tqdm(lines, desc=f'scoring trial {trial_name}'):
                 pair = line.strip().split()
                 ## For FFSVC2022 1 and 2 col is the wav_path
-                enrol_emb, test_emb = enrol_dict[os.path.join("FFSVC2022/dev",pair[1])], test_dict[os.path.join("FFSVC2022/dev",pair[2])]
-                # enrol_emb, test_emb = enrol_dict[pair[0]], test_dict[pair[1]]
+                # enrol_emb, test_emb = enrol_dict[os.path.join("FFSVC2022/dev",pair[1])], test_dict[os.path.join("FFSVC2022/dev",pair[2])]
+                enrol_emb, test_emb = enrol_dict[pair[0]], test_dict[pair[1]]
                 cosine_score = cosine_similarity(enrol_emb.reshape(1, -1),
                                               test_emb.reshape(1, -1))[0][0]
                 # write the score
                 score_f.write(' '.join(pair)+' %.5f\n'%cosine_score)
                 scores.append(cosine_score)
-                if pair[0] == '1' or pair[0] == 'target':
+                if pair[2] == '1' or pair[2] == 'target':
                     labels.append(1)
-                elif pair[0] == '0' or pair[0] == 'nontarget':
+                elif pair[2] == '0' or pair[2] == 'nontarget':
                     labels.append(0)
                 else:
                     raise Exception(f'Unrecognized label in {line}.')

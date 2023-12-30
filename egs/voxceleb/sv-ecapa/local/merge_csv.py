@@ -16,15 +16,15 @@ if __name__ =="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--vox1_path',
                         type=str,
-                        default="/home9a/zezhong/data/vox1/dev/train.csv",
+                        default="/home/jinzezhong/data/vox1/dev/train.csv",
                         help="the csv path of vox1")
     parser.add_argument('--vox2_path',
                         type=str,
-                        default="/home9a/zezhong/data/vox2_dev/train.csv",
+                        default="/home/jinzezhong/data/vox2_dev/train.csv",
                         help="the csv path of vox2")
     parser.add_argument('--new_path',
                         type=str,
-                        default="/home9a/zezhong/data/vox1_2_concat/train.csv",
+                        default="/home/jinzezhong/data/vox1_2_concat/train.csv",
                         help="the csv path of vox1 and vox2 condat")
 
     args = parser.parse_args()

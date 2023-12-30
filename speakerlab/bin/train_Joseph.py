@@ -63,12 +63,12 @@ def main():
     model = torch.nn.parallel.DistributedDataParallel(model)
     
     # speech recognition model
-    speech_model = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-base-960h")
+    # speech_model = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-base-960h")
+    speech_model = HubertForCTC.from_pretrained("danieleV9H/hubert-base-libri-clean-ft100h").cuda()
     speech_model.cuda()
     # frozen the speech model parameters
     for param in speech_model.parameters():
         param.requires_grad = False
-    speech_model = torch.nn.parallel.DistributedDataParallel(speech_model)
     # optimizer
     config.optimizer['args']['params'] = model.parameters()
     optimizer = build('optimizer', config)
@@ -129,6 +129,7 @@ def train(train_loader, model,speech_model, criterion,speech_loss, optimizer, ep
     train_stats = AverageMeters()
     train_stats.add('Time', ':6.3f')
     train_stats.add('Data', ':6.3f')
+    train_stats.add('Total_Loss',':.4e')
     train_stats.add('Speaker_Loss', ':.4e')
     train_stats.add('Speech_Loss', ':.4e')
     train_stats.add('Acc@1', ':6.2f')
@@ -144,7 +145,7 @@ def train(train_loader, model,speech_model, criterion,speech_loss, optimizer, ep
     model.train()
 
     end = time.time()
-    for i, (x, y) in enumerate(train_loader):
+    for i, (raw, x, y) in enumerate(train_loader):
         # data loading time
         train_stats.update('Data', time.time() - end)
 
@@ -153,18 +154,20 @@ def train(train_loader, model,speech_model, criterion,speech_loss, optimizer, ep
         lr_scheduler.step(iter_num)
         margin_scheduler.step(iter_num)
 
+        raw = raw.cuda(non_blocking=True)
         x = x.cuda(non_blocking=True)
         y = y.cuda(non_blocking=True)
 
         # compute output
-        embedding,frame = model.embedding_model(x)[0],model.embedding_model(x)[1]
-        output = model.classifier(embedding)
+        embedding,frame = model.module[0](x)[0],model.module[0](x)[1]
+        output = model.module[1](embedding)
         loss = criterion(output, y)
         acc1 = accuracy(output, y)
 
-        speech_output = speech_model(x)
+        speech_output = speech_model(raw)[0]
         loss2 = speech_loss(speech_output,frame)
         total_loss = loss + config.lamda * loss2
+
         # compute gradient and do optimizer step
         optimizer.zero_grad()
         total_loss.backward()
@@ -185,7 +188,7 @@ def train(train_loader, model,speech_model, criterion,speech_loss, optimizer, ep
         end = time.time()
 
     key_stats={
-        'Avg_loss': train_stats.avg('Total_loss'),
+        'Avg_loss': train_stats.avg('Total_Loss'),
         'Avg_acc': train_stats.avg('Acc@1'),
         'Lr_value': train_stats.val('Lr')
     }
