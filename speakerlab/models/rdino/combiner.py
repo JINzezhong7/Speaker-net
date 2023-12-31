@@ -11,8 +11,6 @@ class Combiner(torch.nn.Module):
         super(Combiner, self).__init__()
         self.backbone = backbone
         self.head = head
-        # self.self_head = self_head
-        # self.cross_head = cross_head
     
     def forward(self, x):
         x = self.backbone(x)

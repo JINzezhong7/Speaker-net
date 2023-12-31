@@ -53,7 +53,7 @@ def main():
     config.checkpointer['args']['recoverables'] = {'embedding_model':embedding_model}
     checkpointer = build('checkpointer', config)
     # checkpointer.recover_if_possible(epoch=config.num_epoch, device=device)
-    checkpointer.recover_if_possible(epoch=70, device=device)
+    checkpointer.recover_if_possible(epoch=85, device=device)
 
     embedding_model.to(device)
     embedding_model.eval()

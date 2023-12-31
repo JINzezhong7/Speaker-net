@@ -132,3 +132,35 @@ class FullGatherLayer(torch.autograd.Function):
         all_gradients = torch.stack(grads)
         dist.all_reduce(all_gradients)
         return all_gradients[dist.get_rank()]
+
+
+class CosineLoss(nn.Module):
+    def __init__(
+            self,
+            ncrops,
+            ntcrops,
+        ):
+        super().__init__()   
+        self.ncrops = ncrops
+        self.ntcrops= ntcrops
+        
+    def forward(self, student_output, teacher_output):
+        """
+        Cosine similarity between embedding outputs of the teacher and student backbones.
+        """
+        student_out = student_output.chunk(self.ncrops)
+
+        # teacher centering and sharpening
+        # teacher_out = teacher_output.detach().chunk(self.ntcrops)
+        teacher_out = teacher_output.detach().chunk(self.ntcrops)
+
+        total_loss = 0
+        n_loss_terms = 0
+        for iq, q in enumerate(teacher_out):
+            for v in range(len(student_out)):
+                similarity_matrix = F.cosine_similarity(q,student_out[v])
+                loss = torch.ones_like(similarity_matrix).cuda() - similarity_matrix
+                total_loss += loss.mean()
+                n_loss_terms += 1
+        total_loss /= n_loss_terms
+        return total_loss

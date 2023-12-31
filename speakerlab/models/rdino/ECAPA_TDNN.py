@@ -357,7 +357,7 @@ class ECAPA_TDNN(torch.nn.Module):
         self,
         input_size,
         device="cpu",
-        lin_neurons=192,
+        lin_neurons=192,   ### for cross dino framework the lin_nerurons = 256 as same as resnet.
         activation=torch.nn.ReLU,
         channels=[512, 512, 512, 512, 1536],
         kernel_sizes=[5, 3, 3, 3, 1],

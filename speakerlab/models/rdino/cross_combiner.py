@@ -3,12 +3,12 @@
 
 import torch
 
-class Combiner(torch.nn.Module):
+class Cross_Combiner(torch.nn.Module):
     """
     Combine backbone (ECAPA) and head (MLP)
     """
-    def __init__(self, backbone, self_head,cross_head):
-        super(Combiner, self).__init__()
+    def __init__(self, backbone,self_head,cross_head):
+        super(Cross_Combiner, self).__init__()
         self.backbone = backbone
         self.self_head = self_head
         self.cross_head = cross_head
@@ -18,4 +18,4 @@ class Combiner(torch.nn.Module):
         ## self_output for self-distillation; cross_output for cross-distillation
         self_output = self.self_head(x)
         cross_output = self.cross_head(x)
-        return self_output,cross_output
+        return self_output,cross_output,x

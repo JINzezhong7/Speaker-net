@@ -26,7 +26,7 @@ Reference:
     Deep Residual Learning for Image Recognition. arXiv:1512.03385
 '''
 import sys
-sys.path.append("/home10a/zezhong/project/J-net/speakerlab/models/rdino")
+sys.path.append("/home/jinzezhong/project/Speaker-net/speakerlab/models/rdino")
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

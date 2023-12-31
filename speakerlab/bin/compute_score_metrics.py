@@ -21,6 +21,7 @@ parser.add_argument('--trials', nargs='+', help='Trial')
 parser.add_argument('--p_target', default=0.01, type=float, help='p_target in DCF')
 parser.add_argument('--c_miss', default=1, type=float, help='c_miss in DCF')
 parser.add_argument('--c_fa', default=1, type=float, help='c_fa in DCF')
+parser.add_argument('--test_set', default="", type=str, help='ffsvc or vox1')
 
 def main():
     args = parser.parse_args(sys.argv[1:])
@@ -57,19 +58,29 @@ def main():
             for line in tqdm(lines, desc=f'scoring trial {trial_name}'):
                 pair = line.strip().split()
                 ## For FFSVC2022 1 and 2 col is the wav_path
-                # enrol_emb, test_emb = enrol_dict[os.path.join("FFSVC2022/dev",pair[1])], test_dict[os.path.join("FFSVC2022/dev",pair[2])]
-                enrol_emb, test_emb = enrol_dict[pair[0]], test_dict[pair[1]]
-                cosine_score = cosine_similarity(enrol_emb.reshape(1, -1),
-                                              test_emb.reshape(1, -1))[0][0]
+                if args.test_set == "FFSVC2022":
+                    enrol_emb, test_emb = enrol_dict[os.path.join("FFSVC2022/dev",pair[1])], test_dict[os.path.join("FFSVC2022/dev",pair[2])]
+                elif args.test_set == "Vox1":
+                    enrol_emb, test_emb = enrol_dict[pair[0]], test_dict[pair[1]]
+                
+                cosine_score = cosine_similarity(enrol_emb.reshape(1, -1),test_emb.reshape(1, -1))[0][0]
                 # write the score
                 score_f.write(' '.join(pair)+' %.5f\n'%cosine_score)
                 scores.append(cosine_score)
-                if pair[2] == '1' or pair[2] == 'target':
-                    labels.append(1)
-                elif pair[2] == '0' or pair[2] == 'nontarget':
-                    labels.append(0)
-                else:
-                    raise Exception(f'Unrecognized label in {line}.')
+                if args.test_set == "FFSVC2022":
+                    if pair[0] == '1' or pair[0] == 'target':
+                        labels.append(1)
+                    elif pair[0] == '0' or pair[0] == 'nontarget':
+                        labels.append(0)
+                    else:
+                        raise Exception(f'Unrecognized label in {line}.')
+                elif args.test_set == "Vox1":
+                    if pair[2] == '1' or pair[2] == 'target':
+                        labels.append(1)
+                    elif pair[2] == '0' or pair[2] == 'nontarget':
+                        labels.append(0)
+                    else:
+                        raise Exception(f'Unrecognized label in {line}.')
 
         # compute metrics
         scores = np.array(scores)

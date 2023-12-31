@@ -12,7 +12,7 @@ exp_dir:
 global_frames: 400
 local_frames: 200
 eval_frames: 350
-batch_size_per_gpu: 30 ## original is 52
+batch_size_per_gpu: 10 ## original is 52
 nDataLoaderThread: 16
 
 # Optimizer
@@ -38,6 +38,7 @@ use_bn_in_head: True
 momentum_teacher: 0.996
 lamda_ecapa: 1.0
 lamda_resnet: 1.0
+lamda_cosine: 1.0
 # Warming up
 warmup_epochs: 20
 warmup_teacher_temp: 0.04
@@ -160,28 +161,28 @@ cross_teacher_head_resnet:
 
 # model combiner
 student_ecapa:
-  obj: speakerlab.models.rdino.combiner.Combiner
+  obj: speakerlab.models.rdino.cross_combiner.Cross_Combiner
   args:
     backbone: <student_backbone_ecapa>
     self_head: <self_student_head_ecapa>
     cross_head: <cross_student_head_ecapa>
 
 teacher_ecapa:
-  obj: speakerlab.models.rdino.combiner.Combiner
+  obj: speakerlab.models.rdino.cross_combiner.Cross_Combiner
   args:
     backbone: <teacher_backbone_ecapa>
     self_head: <self_teacher_head_ecapa>
     cross_head: <cross_teacher_head_ecapa>
 
 student_resnet:
-  obj: speakerlab.models.rdino.combiner.Combiner
+  obj: speakerlab.models.rdino.cross_combiner.Cross_Combiner
   args:
       backbone: <student_backbone_resnet>
       self_head: <self_student_head_resnet>
       cross_head: <cross_student_head_resnet>
 
 teacher_resnet:
-  obj: speakerlab.models.rdino.combiner.Combiner
+  obj: speakerlab.models.rdino.cross_combiner.Cross_Combiner
   args:
       backbone: <teacher_backbone_resnet>
       self_head: <self_teacher_head_resnet>
@@ -232,3 +233,14 @@ cross_loss_resnet:
     warmup_teacher_temp_epochs: <warmup_teacher_temp_epochs>
     nepochs: <epochs>
 
+cosine_loss_ecapa:
+  obj: speakerlab.loss.dino_loss.CosineLoss
+  args:
+    ncrops: <crop_total_num>
+    ntcrops: <glb_num>
+
+cosine_loss_resnet:
+  obj: speakerlab.loss.dino_loss.CosineLoss
+  args:
+    ncrops: <crop_total_num>
+    ntcrops: <glb_num>

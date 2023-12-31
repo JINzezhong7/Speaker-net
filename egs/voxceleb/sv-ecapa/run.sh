@@ -5,13 +5,14 @@
 set -e
 . ./path.sh || exit 1
 
-stage=3
+stage=6
 stop_stage=6
 
 data=/home/jinzezhong/data
 exp=/home/jinzezhong/result/jexp
 exp_name=joesph_ecapa_tdnn_hubert
-gpus="0 1 2 3"
+test_set="FFSVC2022"
+gpus="4 5 6 7"
 
 . utils/parse_options.sh || exit 1
 
@@ -44,7 +45,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   echo "Stage4: Extracting speaker embeddings..."
   nj=4
   torchrun --nproc_per_node=$nj --master_port=65534 speakerlab/bin/extract.py --exp_dir $exp_dir \
-           --data $data/vox1/test/wav.scp --use_gpu --gpu $gpus
+           --data $data/FFSVC2022/wav.scp --use_gpu --gpu $gpus
 fi
 
 # extract in-domain (FFSVC2020) data to conduct submean backend score.
@@ -60,8 +61,8 @@ fi
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
   # Output score metrics.
   echo "Stage6: Computing score metrics..."
-  trials="$data/vox1/test/trials/vox1_O_cleaned.trial $data/vox1/test/trials/vox1_E_cleaned.trial $data/vox1/test/trials/vox1_H_cleaned.trial"
-  # trials="$data/FFSVC2022/trials/trials_dev_keys"
+  # trials="$data/vox1/test/trials/vox1_O_cleaned.trial $data/vox1/test/trials/vox1_E_cleaned.trial $data/vox1/test/trials/vox1_H_cleaned.trial"
+  trials="$data/FFSVC2022/trials/trials_dev_keys"
   python speakerlab/bin/compute_score_metrics.py --enrol_data $exp_dir/embeddings --test_data $exp_dir/embeddings \
-                                                 --scores_dir $exp_dir/scores --trials $trials
+                                                --test_set $test_set --scores_dir $exp_dir/scores --trials $trials
 fi
