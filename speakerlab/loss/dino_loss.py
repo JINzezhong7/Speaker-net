@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import torch.distributed as dist
-
+import math
 import speakerlab.utils.utils_rdino as utils_rdino
 
 class DINOLoss(nn.Module):
@@ -133,17 +133,18 @@ class FullGatherLayer(torch.autograd.Function):
         dist.all_reduce(all_gradients)
         return all_gradients[dist.get_rank()]
 
-
+## margin cosine loss
 class CosineLoss(nn.Module):
     def __init__(
             self,
             ncrops,
             ntcrops,
+            margin,
         ):
         super().__init__()   
         self.ncrops = ncrops
         self.ntcrops= ntcrops
-        
+        self.cos_value = math.cos(math.radians(margin)) 
     def forward(self, student_output, teacher_output):
         """
         Cosine similarity between embedding outputs of the teacher and student backbones.
@@ -159,8 +160,37 @@ class CosineLoss(nn.Module):
         for iq, q in enumerate(teacher_out):
             for v in range(len(student_out)):
                 similarity_matrix = F.cosine_similarity(q,student_out[v])
-                loss = torch.ones_like(similarity_matrix).cuda() - similarity_matrix
+                # loss = torch.ones_like(similarity_matrix).cuda() - similarity_matrix
+                loss = torch.full_like(similarity_matrix,self.cos_value).cuda() - similarity_matrix
                 total_loss += loss.mean()
+                n_loss_terms += 1
+        total_loss /= n_loss_terms
+        return total_loss
+
+
+class MSELoss(nn.Module):
+    def __init__(
+        self,
+        ncrops,
+        ntcrops,
+        ):
+        super().__init__()
+        self.ncrops = ncrops
+        self.ntcrops = ntcrops
+        self.criterion = nn.MSELoss()
+    def forward(self, student_output, teacher_output):
+        """
+        Mse loss between frame level output from backbone.
+        """
+        student_out = student_output.chunk(self.ntcrops)
+        teacher_out = teacher_output.detach().chunk(self.ntcrops)
+
+        total_loss = 0
+        n_loss_terms = 0
+        for iq, q in enumerate(teacher_out):
+            for v in range(len(student_out)):
+                loss = self.criterion(q,student_out[v])
+                total_loss += loss
                 n_loss_terms += 1
         total_loss /= n_loss_terms
         return total_loss

@@ -12,7 +12,7 @@ exp_dir:
 global_frames: 400
 local_frames: 200
 eval_frames: 350
-batch_size_per_gpu: 40 ## original is 52
+batch_size_per_gpu: 30 ## original is 52; 30
 nDataLoaderThread: 16
 
 # Optimizer
@@ -22,7 +22,7 @@ lr_resnet: 0.2
 min_lr: !!float 1e-5
 weight_decay: !!float 5e-5
 weight_decay_end: !!float 5e-5
-epochs: 150
+epochs: 100
 saveckp_freq: 2
 
 # Parameters for CROSSDINO
@@ -36,7 +36,7 @@ clip_grad_ecapa: 3.0
 clip_grad_resnet: 3.0
 use_bn_in_head: True
 momentum_teacher: 0.996
-lamda_ecapa: 1.0
+lamda_ecapa: 0
 lamda_resnet: 1.0
 # Warming up
 warmup_epochs: 20
@@ -46,7 +46,7 @@ warmup_teacher_temp_epochs: 30
 
 # Model definition and saving
 n_mels: 80
-embed_dim_ecapa: 192
+embed_dim_ecapa: 256
 embed_dim_resnet: 256
 out_dim: 65536
 

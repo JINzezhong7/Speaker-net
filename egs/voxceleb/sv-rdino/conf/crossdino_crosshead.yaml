@@ -12,7 +12,7 @@ exp_dir:
 global_frames: 400
 local_frames: 200
 eval_frames: 350
-batch_size_per_gpu: 10 ## original is 52
+batch_size_per_gpu: 2 ## original is 52
 nDataLoaderThread: 16
 
 # Optimizer
@@ -39,6 +39,7 @@ momentum_teacher: 0.996
 lamda_ecapa: 1.0
 lamda_resnet: 1.0
 lamda_cosine: 1.0
+margin: 30
 # Warming up
 warmup_epochs: 20
 warmup_teacher_temp: 0.04
@@ -79,25 +80,25 @@ dataloader:
 
 # backbone model
 student_backbone_ecapa:
-  obj: speakerlab.models.rdino.ECAPA_TDNN.ECAPA_TDNN
+  obj: speakerlab.models.rdino.ECAPA_TDNN_frame.ECAPA_TDNN_frame
   args:
     input_size: <n_mels>
     channels: [512, 512, 512, 512, 1536]
 
 teacher_backbone_ecapa:
-  obj: speakerlab.models.rdino.ECAPA_TDNN.ECAPA_TDNN
+  obj: speakerlab.models.rdino.ECAPA_TDNN_frame.ECAPA_TDNN_frame
   args:
     input_size: <n_mels>
     channels: [512, 512, 512, 512, 1536]
 
 
 student_backbone_resnet:
-  obj: speakerlab.models.rdino.resnet.ResNet
+  obj: speakerlab.models.rdino.resnet_frame.ResNet_frame
   args: 
     num_blocks: [3,4,6,3]
 
 teacher_backbone_resnet:
-  obj: speakerlab.models.rdino.resnet.ResNet
+  obj: speakerlab.models.rdino.resnet_frame.ResNet_frame
   args: 
     num_blocks: [3,4,6,3]
 
@@ -238,9 +239,23 @@ cosine_loss_ecapa:
   args:
     ncrops: <crop_total_num>
     ntcrops: <glb_num>
-
+    margin: <margin>
+    
 cosine_loss_resnet:
   obj: speakerlab.loss.dino_loss.CosineLoss
+  args:
+    ncrops: <crop_total_num>
+    ntcrops: <glb_num>
+    margin: <margin>
+
+mse_loss_ecapa:
+  obj: speakerlab.loss.dino_loss.MSELoss
+  args:
+    ncrops: <crop_total_num>
+    ntcrops: <glb_num>
+
+mse_loss_resnet:
+  obj: speakerlab.loss.dino_loss.MSELoss
   args:
     ncrops: <crop_total_num>
     ntcrops: <glb_num>

@@ -454,12 +454,12 @@ class Joesoh_ECAPA_TDNN(torch.nn.Module):
                     frame = self.fullyconnect(frame) ## (Batch_size, T:(100),dimension:(768))
             except TypeError:
                 x = layer(x)
-                # if i ==0:
-                #     # print("feed the TDNN layer output to speech model")
-                #     frame = x
-                #     frame = self.pool(frame) ## (Batch_size, dimension:(1536), T:(100))
-                #     frame = frame.transpose(1,2) ## (Batch_size, T:(100), dimension:(1536))
-                #     frame = self.fullyconnect(frame) ## (Batch_size, T:(100),dimension:(768))
+                if i ==0:
+                    # print("feed the TDNN layer output to speech model")
+                    frame = x
+                    frame = self.pool(frame) ## (Batch_size, dimension:(1536), T:(100))
+                    frame = frame.transpose(1,2) ## (Batch_size, T:(100), dimension:(1536))
+                    frame = self.fullyconnect(frame) ## (Batch_size, T:(100),dimension:(768))
             xl.append(x)
 
         # Multi-layer feature aggregation
@@ -476,4 +476,4 @@ class Joesoh_ECAPA_TDNN(torch.nn.Module):
         x = x.transpose(1, 2)
         x = x.squeeze(1)
 
-        return x
+        return x,frame

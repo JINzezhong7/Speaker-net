@@ -14,8 +14,8 @@ class Cross_Combiner(torch.nn.Module):
         self.cross_head = cross_head
     
     def forward(self, x):
-        x = self.backbone(x)
+        x, frame = self.backbone(x)
         ## self_output for self-distillation; cross_output for cross-distillation
         self_output = self.self_head(x)
         cross_output = self.cross_head(x)
-        return self_output,cross_output,x
+        return self_output, cross_output, x, frame
