@@ -49,7 +49,7 @@ def main():
     teacher_model = build('teacher_ecapa', config)
 
     # Recover the embedding params of 60 epoch
-    ckp_path = f"{args.exp_dir}/models/checkpoint0070.pth"
+    ckp_path = f"{args.exp_dir}/models/checkpoint0016.pth"
     checkpoint = torch.load(ckp_path, map_location=device)
     teacher_model = load_params(teacher_model, checkpoint['teacher_ecapa'])
 
@@ -86,8 +86,8 @@ def main():
                 wav, fs = torchaudio.load(wav_path)
                 feat = feature_extractor(wav)
                 feat = feat.to(device)
-                emb = teacher_model.backbone(feat)
-                emb = emb.detach().cpu().numpy()
+                emb,_ = teacher_model.backbone(feat)
+                emb,_ = emb.detach().cpu().numpy()
                 writer(k, emb)
 
 if __name__ == "__main__":

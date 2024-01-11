@@ -44,7 +44,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   # Extract embeddings of test datasets.
   echo "Stage4: Extracting speaker embeddings..."
   nj=4
-  torchrun --nproc_per_node=$nj --master_port=65534 speakerlab/bin/extract.py --exp_dir $exp_dir \
+  torchrun --nproc_per_node=$nj --master_port=65531 speakerlab/bin/extract.py --exp_dir $exp_dir \
            --data $data/FFSVC2022/wav.scp --use_gpu --gpu $gpus
 fi
 

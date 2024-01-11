@@ -197,7 +197,7 @@ def main():
             'cosine_loss_ecapa': cosine_loss_ecapa.state_dict(),
             'cosine_loss_resnet': cosine_loss_resnet.state_dict(),
             'mse_loss_ecapa': mse_loss_ecapa.state_dict(),
-            'mse_loss_resnet': mse_loss_resnet.state.dict(),
+            'mse_loss_resnet': mse_loss_resnet.state_dict(),
         }
 
         utils_rdino.save_on_master(save_dict, os.path.join(model_save_path, 'checkpoint.pth'))

@@ -4,14 +4,14 @@
 set -e
 . ./path.sh || exit 1
 
-stage=2
+stage=3
 stop_stage=4
 
 data=/home/jinzezhong/data
 exp=/home/jinzezhong/result/dexp
-exp_name=test
+exp_name=Memo_all_level
 test_set="Vox1"
-gpus="6"
+gpus="0 1 2 3 4 5 6 7"
 
 . utils/parse_options.sh || exit 1
 

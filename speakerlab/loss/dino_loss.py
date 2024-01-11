@@ -160,8 +160,8 @@ class CosineLoss(nn.Module):
         for iq, q in enumerate(teacher_out):
             for v in range(len(student_out)):
                 similarity_matrix = F.cosine_similarity(q,student_out[v])
-                # loss = torch.ones_like(similarity_matrix).cuda() - similarity_matrix
-                loss = torch.full_like(similarity_matrix,self.cos_value).cuda() - similarity_matrix
+                loss = torch.ones_like(similarity_matrix).cuda() - similarity_matrix
+                # loss = torch.full_like(similarity_matrix,self.cos_value).cuda() - similarity_matrix
                 total_loss += loss.mean()
                 n_loss_terms += 1
         total_loss /= n_loss_terms

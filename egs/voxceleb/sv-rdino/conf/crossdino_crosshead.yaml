@@ -12,7 +12,7 @@ exp_dir:
 global_frames: 400
 local_frames: 200
 eval_frames: 350
-batch_size_per_gpu: 2 ## original is 52
+batch_size_per_gpu: 35 ## original is 52
 nDataLoaderThread: 16
 
 # Optimizer
