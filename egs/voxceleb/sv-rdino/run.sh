@@ -9,7 +9,7 @@ stop_stage=4
 
 data=/home/jinzezhong/data
 exp=/home/jinzezhong/result/dexp
-exp_name=Memo_all_level
+exp_name=MeMo_lecapa_0.1_lresnet_1
 test_set="Vox1"
 gpus="0 1 2 3 4 5 6 7"
 
@@ -25,7 +25,7 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
   echo "Stage2: Training the speaker model ..."
   num_gpu=$(echo $gpus | awk -F ' ' '{print NF}')
-  torchrun --nproc_per_node=$num_gpu --master_port=65532 speakerlab/bin/train_crossdino_crosshead.py --config conf/crossdino_crosshead.yaml --gpu $gpus \
+  torchrun --nproc_per_node=$num_gpu --master_port=65531 speakerlab/bin/train_crossdino_crosshead.py --config conf/crossdino_crosshead.yaml --gpu $gpus \
            --data $data/vox2_dev/wav.scp --noise $data/musan/wav.scp --reverb $data/rirs/wav.scp --exp_dir $exp_dir
 fi
 

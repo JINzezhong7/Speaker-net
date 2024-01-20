@@ -159,6 +159,9 @@ class CosineLoss(nn.Module):
         n_loss_terms = 0
         for iq, q in enumerate(teacher_out):
             for v in range(len(student_out)):
+                if v == iq:
+                    # we skip cases where student and teacher operate on the same view
+                    continue
                 similarity_matrix = F.cosine_similarity(q,student_out[v])
                 loss = torch.ones_like(similarity_matrix).cuda() - similarity_matrix
                 # loss = torch.full_like(similarity_matrix,self.cos_value).cuda() - similarity_matrix
@@ -189,6 +192,9 @@ class MSELoss(nn.Module):
         n_loss_terms = 0
         for iq, q in enumerate(teacher_out):
             for v in range(len(student_out)):
+                if v == iq:
+                    # we skip cases where student and teacher operate on the same view
+                    continue
                 loss = self.criterion(q,student_out[v])
                 total_loss += loss
                 n_loss_terms += 1

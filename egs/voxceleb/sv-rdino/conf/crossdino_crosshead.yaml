@@ -12,8 +12,8 @@ exp_dir:
 global_frames: 400
 local_frames: 200
 eval_frames: 350
-batch_size_per_gpu: 35 ## original is 52
-nDataLoaderThread: 16
+batch_size_per_gpu: 30 ## original is 52
+nDataLoaderThread: 32
 
 # Optimizer
 optimizer: "sgd"
@@ -22,7 +22,7 @@ lr_resnet: 0.2
 min_lr: !!float 1e-5
 weight_decay: !!float 5e-5
 weight_decay_end: !!float 5e-5
-epochs: 100
+epochs: 150
 saveckp_freq: 2
 
 # Parameters for CROSSDINO
@@ -38,8 +38,6 @@ use_bn_in_head: True
 momentum_teacher: 0.996
 lamda_ecapa: 1.0
 lamda_resnet: 1.0
-lamda_cosine: 1.0
-margin: 30
 # Warming up
 warmup_epochs: 20
 warmup_teacher_temp: 0.04
@@ -80,25 +78,25 @@ dataloader:
 
 # backbone model
 student_backbone_ecapa:
-  obj: speakerlab.models.rdino.ECAPA_TDNN_frame.ECAPA_TDNN_frame
+  obj: speakerlab.models.rdino.ECAPA_TDNN.ECAPA_TDNN
   args:
     input_size: <n_mels>
     channels: [512, 512, 512, 512, 1536]
 
 teacher_backbone_ecapa:
-  obj: speakerlab.models.rdino.ECAPA_TDNN_frame.ECAPA_TDNN_frame
+  obj: speakerlab.models.rdino.ECAPA_TDNN.ECAPA_TDNN
   args:
     input_size: <n_mels>
     channels: [512, 512, 512, 512, 1536]
 
 
 student_backbone_resnet:
-  obj: speakerlab.models.rdino.resnet_frame.ResNet_frame
+  obj: speakerlab.models.rdino.resnet.ResNet
   args: 
     num_blocks: [3,4,6,3]
 
 teacher_backbone_resnet:
-  obj: speakerlab.models.rdino.resnet_frame.ResNet_frame
+  obj: speakerlab.models.rdino.resnet.ResNet
   args: 
     num_blocks: [3,4,6,3]
 
@@ -234,28 +232,16 @@ cross_loss_resnet:
     warmup_teacher_temp_epochs: <warmup_teacher_temp_epochs>
     nepochs: <epochs>
 
-cosine_loss_ecapa:
-  obj: speakerlab.loss.dino_loss.CosineLoss
+csl_loss_ecapa:
+  obj: speakerlab.loss.contrastive_loss.ContrastiveLoss
   args:
     ncrops: <crop_total_num>
     ntcrops: <glb_num>
-    margin: <margin>
-    
-cosine_loss_resnet:
-  obj: speakerlab.loss.dino_loss.CosineLoss
-  args:
-    ncrops: <crop_total_num>
-    ntcrops: <glb_num>
-    margin: <margin>
+    batch_size: <batch_size_per_gpu>
 
-mse_loss_ecapa:
-  obj: speakerlab.loss.dino_loss.MSELoss
+csl_loss_resnet:
+  obj: speakerlab.loss.contrastive_loss.ContrastiveLoss
   args:
     ncrops: <crop_total_num>
     ntcrops: <glb_num>
-
-mse_loss_resnet:
-  obj: speakerlab.loss.dino_loss.MSELoss
-  args:
-    ncrops: <crop_total_num>
-    ntcrops: <glb_num>
+    batch_size: <batch_size_per_gpu>

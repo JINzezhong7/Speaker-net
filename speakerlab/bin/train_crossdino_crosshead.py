@@ -92,14 +92,8 @@ def main():
     self_loss_resnet = build('self_loss_resnet',config).cuda()
     cross_loss_ecapa = build('cross_loss_ecapa',config).cuda()
     cross_loss_resnet = build('cross_loss_resnet',config).cuda()
-
-    ## the self cosine loss for feature level.
-    cosine_loss_ecapa = build('cosine_loss_ecapa', config).cuda()
-    cosine_loss_resnet = build('cosine_loss_resnet',config).cuda()
-
-    ## mse loss for global frame level
-    mse_loss_ecapa = build('mse_loss_ecapa', config).cuda()
-    mse_loss_resnet = build('mse_loss_resnet', config).cuda()
+    csl_loss_ecapa = build('csl_loss_ecapa', config).cuda()
+    csl_loss_resnet = build('csl_loss_resnet', config).cuda()
     # Prepare optimizer
     params_groups_ecapa = utils_rdino.get_params_groups(student_ecapa)
     if config.optimizer =="sgd":
@@ -163,10 +157,8 @@ def main():
         self_loss_resnet=self_loss_resnet,
         cross_loss_ecapa=cross_loss_ecapa,
         cross_loss_resnet=cross_loss_resnet,
-        cosine_loss_ecapa=cosine_loss_ecapa,
-        cosine_loss_resnet=cosine_loss_resnet,
-        mse_loss_ecapa=mse_loss_ecapa,
-        mse_loss_resnet=mse_loss_resnet,
+        csl_loss_ecapa=csl_loss_ecapa,
+        csl_loss_resnet=csl_loss_resnet,
     )
     start_epoch = to_restore["epoch"]
 
@@ -177,7 +169,7 @@ def main():
         train_loader.sampler.set_epoch(epoch)
         # Training one epoch
         train_stats = train_one_epoch(student_ecapa, teacher_ecapa, student_resnet, teacher_resnet, \
-        self_loss_ecapa, self_loss_resnet, cross_loss_ecapa, cross_loss_resnet,cosine_loss_ecapa,cosine_loss_resnet,mse_loss_ecapa,mse_loss_resnet, \
+        self_loss_ecapa, self_loss_resnet, cross_loss_ecapa, cross_loss_resnet,csl_loss_ecapa,csl_loss_resnet, \
         train_loader, optimizer_ecapa, optimizer_resnet, lr_schedule_ecapa, \
         lr_schedule_resnet, wd_schedule_ecapa, wd_schedule_resnet, momentum_schedule, epoch, config)
 
@@ -194,10 +186,8 @@ def main():
             'self_loss_resnet': self_loss_resnet.state_dict(),
             'cross_loss_ecapa': cross_loss_ecapa.state_dict(),
             'cross_loss_resnet': cross_loss_resnet.state_dict(),
-            'cosine_loss_ecapa': cosine_loss_ecapa.state_dict(),
-            'cosine_loss_resnet': cosine_loss_resnet.state_dict(),
-            'mse_loss_ecapa': mse_loss_ecapa.state_dict(),
-            'mse_loss_resnet': mse_loss_resnet.state_dict(),
+            'csl_loss_ecapa': csl_loss_ecapa.state_dict(),
+            'csl_loss_resnet': csl_loss_resnet.state_dict(),
         }
 
         utils_rdino.save_on_master(save_dict, os.path.join(model_save_path, 'checkpoint.pth'))
@@ -210,7 +200,7 @@ def main():
 
 
 def train_one_epoch(student_ecapa, teacher_ecapa, student_resnet, teacher_resnet, \
-        self_loss_ecapa, self_loss_resnet, cross_loss_ecapa, cross_loss_resnet,cosine_loss_ecapa,cosine_loss_resnet,mse_loss_ecapa,mse_loss_resnet, \
+        self_loss_ecapa, self_loss_resnet, cross_loss_ecapa, cross_loss_resnet,csl_loss_ecapa,csl_loss_resnet, \
         train_loader, optimizer_ecapa, optimizer_resnet, lr_schedule_ecapa, \
         lr_schedule_resnet, wd_schedule_ecapa, wd_schedule_resnet, momentum_schedule, epoch, config):
 
@@ -243,10 +233,10 @@ def train_one_epoch(student_ecapa, teacher_ecapa, student_resnet, teacher_resnet
             data = data.transpose(0,1).cuda()
             global_data = data[0: config.glb_num, :, :, :]
             global_data = global_data.reshape(-1, fbank_dim, frame_dim)
-            self_teacher_output_ecapa, cross_teacher_output_ecapa, teacher_emb_ecapa, teacher_frame_ecapa = teacher_ecapa(global_data)
-            self_student_global_output_ecapa, cross_student_global_output_ecapa, student_global_emb_ecapa, student_global_frame_ecapa = student_ecapa(global_data)
-            self_teacher_output_resnet, cross_teacher_output_resnet, teacher_emb_resnet, teacher_frame_resnet = teacher_resnet(global_data)
-            self_student_global_output_resnet, cross_student_global_output_resnet, student_global_emb_resnet, student_global_frame_resnet = student_resnet(global_data)
+            self_teacher_output_ecapa, cross_teacher_output_ecapa, teacher_emb_ecapa = teacher_ecapa(global_data)
+            self_student_global_output_ecapa, cross_student_global_output_ecapa, student_global_emb_ecapa = student_ecapa(global_data)
+            self_teacher_output_resnet, cross_teacher_output_resnet, teacher_emb_resnet = teacher_resnet(global_data)
+            self_student_global_output_resnet, cross_student_global_output_resnet, student_global_emb_resnet = student_resnet(global_data)
             local_data1 = data[config.glb_num, :, :, :]
             local_data2 = data[config.glb_num + 1, :, :, :]
             local_frames = config.local_frames
@@ -257,26 +247,25 @@ def train_one_epoch(student_ecapa, teacher_ecapa, student_resnet, teacher_resnet
             local_data = torch.cat((local_data1_1,local_data1_2,local_data2_1,local_data2_2), axis=0)
             # local_data = torch.cat((local_data1_1,local_data1_2),axis=0)
 
-            self_student_local_output_ecapa, cross_student_local_output_ecapa, student_local_emb_ecapa, _ = student_ecapa(local_data)
-            self_student_local_output_resnet, cross_student_local_output_resnet, student_local_emb_resnet, _ = student_resnet(local_data)
+            self_student_local_output_ecapa, cross_student_local_output_ecapa, student_local_emb_ecapa = student_ecapa(local_data)
+            self_student_local_output_resnet, cross_student_local_output_resnet, student_local_emb_resnet = student_resnet(local_data)
             self_student_output_ecapa = torch.cat((self_student_global_output_ecapa, self_student_local_output_ecapa), axis=0)
             cross_student_output_ecapa = torch.cat((cross_student_global_output_ecapa,cross_student_local_output_ecapa), axis=0)
             self_student_output_resnet = torch.cat((self_student_global_output_resnet,self_student_local_output_resnet), axis=0)
             cross_student_output_resnet = torch.cat((cross_student_global_output_resnet,cross_student_local_output_resnet), axis=0)
-            student_emb_ecapa = torch.cat((student_global_emb_ecapa,student_local_emb_ecapa),axis=0)
-            student_emb_resnet = torch.cat((student_global_emb_resnet,student_local_emb_resnet),axis=0)
+            student_emb_ecapa = student_global_emb_ecapa
+            student_emb_resnet = student_global_emb_resnet
+
             # loss
             self_loss_e = self_loss_ecapa(self_student_output_ecapa, self_teacher_output_ecapa, epoch)
             cross_loss_e = cross_loss_ecapa(cross_student_output_ecapa, cross_teacher_output_resnet, epoch)
-            cosine_loss_e = cosine_loss_ecapa(student_emb_ecapa,teacher_emb_ecapa) # same model feature level KD
-            mse_loss_e = mse_loss_ecapa(student_global_frame_ecapa,teacher_frame_ecapa)
-            loss_ecapa_total = self_loss_e + config.lamda_ecapa * cross_loss_e + config.lamda_cosine * cosine_loss_e + mse_loss_e
+            csl_loss_e = csl_loss_ecapa(student_emb_ecapa,teacher_emb_ecapa)
+            loss_ecapa_total = self_loss_e + config.lamda_ecapa * cross_loss_e + csl_loss_e
 
             self_loss_r = self_loss_resnet(self_student_output_resnet, self_teacher_output_resnet, epoch)
             cross_loss_r = cross_loss_resnet(cross_student_output_resnet, cross_teacher_output_ecapa, epoch)
-            cosine_loss_r = cosine_loss_resnet(student_emb_resnet, teacher_emb_resnet) # same model feature level KD
-            mse_loss_r = mse_loss_resnet(student_global_frame_resnet,teacher_frame_resnet)
-            loss_resnet_total = self_loss_r  + config.lamda_resnet * cross_loss_r + config.lamda_cosine * cosine_loss_r + mse_loss_r
+            csl_loss_r = csl_loss_resnet(student_emb_resnet,teacher_emb_resnet)
+            loss_resnet_total = self_loss_r  + config.lamda_resnet * cross_loss_r + csl_loss_r
             
             if not math.isfinite(loss_ecapa_total.item()):
                 raise Exception("Loss is {}, stopping training".format(loss_ecapa_total.item()), force=True)
@@ -316,6 +305,8 @@ def train_one_epoch(student_ecapa, teacher_ecapa, student_resnet, teacher_resnet
             torch.cuda.synchronize()
             metric_logger.update(loss_ecapa=loss_ecapa_total.item())
             metric_logger.update(loss_resnet=loss_resnet_total.item())
+            metric_logger.update(csl_loss_ecapa=csl_loss_e.item())
+            metric_logger.update(csl_loss_resnet=csl_loss_r.item())
             metric_logger.update(lr_ecapa=optimizer_ecapa.param_groups[0]["lr"])
             metric_logger.update(lr_resnet=optimizer_resnet.param_groups[0]["lr"])
             # metric_logger.update(wd=optimizer.param_groups[0]["weight_decay"])
