@@ -46,7 +46,6 @@ class WarmupCosineScheduler:
         else:
             return self.min_lr
 
-
 class StepScheduler:
     def __init__(
         self,
@@ -138,3 +137,59 @@ class MarginScheduler:
 
     def get_margin(self):
         return self.margin
+
+class ExponetialDecrease():
+    def __init__(
+        self,
+        optimizer,
+        min_lr,
+        max_lr,
+        num_epoch,
+        step_per_epoch,
+        warmup_epoch,
+        scale_ratio=1.0,
+        warm_from_zero=False
+    ):
+        self.optimizer = optimizer
+        assert min_lr <= max_lr
+        self.min_lr = min_lr
+        self.max_lr = max_lr
+        self.warmup_step = warmup_epoch * step_per_epoch
+        self.max_step = num_epoch * step_per_epoch
+        self.current_step = 0.0
+        self.warm_from_zero = warm_from_zero
+        self.scale_ratio = scale_ratio
+
+    def get_multi_process_coeff(self):
+        lr_coeff = 1.0 * self.scale_ratio
+        if self.current_step < self.warmup_step:
+            if self.warm_from_zero:
+                lr_coeff = self.scale_ratio * self.current_step / self.warmup_step
+            elif self.scale_ratio >1:
+                lr_coeff = (self.scale_ratio -
+                            1) * self.current_step / self.warmup_step + 1.0
+        return lr_coeff
+
+    def get_current_lr(self):
+        lr_coeff = self.get_multi_process_coeff()
+        current_lr = lr_coeff * self.max_lr * math.exp(
+            (self.current_step / self.max_step) *
+            math.log(self.min_lr / self.max_lr)
+        )
+
+        return current_lr
+
+    def set_lr(self,):
+        new_lr = self.get_current_lr()
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = new_lr
+        return new_lr
+
+    def step(self, current_step=None):
+        if current_step is not None:
+            self.current_step = current_step
+        new_lr = self.set_lr()
+        self.current_step += 1
+
+        return new_lr
+    

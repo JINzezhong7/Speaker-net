@@ -36,3 +36,30 @@ class WavSVDataset(BaseSVDataset):
 
     def read_file(self, data_file):
         return load_data_csv(data_file)
+
+## below is the dataset for short utterance speaker verification
+class WavSVDataset_KD(BaseSVDataset):
+
+    def __getitem__(self, index):
+        data = self.get_data(index)
+        wav_path = data['path']
+        spk = data['spk']
+
+        # process for long wav (input to teacher model)
+        wav, speed_index = self.preprocessor['wav_reader'](wav_path)
+        spkid = self.preprocessor['label_encoder'](spk, speed_index)
+        wav = self.preprocessor['augmentations'](wav)
+        feat = self.preprocessor['feature_extractor'](wav)
+
+
+        return wav,feat, spkid
+
+    def get_data(self, index):
+        if not hasattr(self, 'data_keys'):
+            self.data_keys = list(self.data_points.keys())
+        key = self.data_keys[index]
+
+        return self.data_points[key]
+
+    def read_file(self, data_file):
+        return load_data_csv(data_file)

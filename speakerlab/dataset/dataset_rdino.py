@@ -39,7 +39,7 @@ class RDINODataset(Dataset):
         self.data = list(
             load_wav_scp(data).values()
             )
-        self.rir = np.load("/home/jinzezhong/data/rirs/rir.npy")
+        self.rir = np.load("/home9a/zezhong/data/rirs/rir.npy")
         self.noisesnr = {
             'noise':[0, 15], 'speech':[13, 20], 'music':[5, 15]
             }

@@ -46,12 +46,12 @@ def main():
         device = torch.device('cpu')
 
     # Build the embedding model
-    teacher_model = build('teacher_resnet', config)
+    teacher_model = build('teacher_ecapa', config)
 
     # Recover the embedding params of 60 epoch
-    ckp_path = f"{args.exp_dir}/models/checkpoint0088.pth"
+    ckp_path = f"{args.exp_dir}/models/checkpoint0084.pth"
     checkpoint = torch.load(ckp_path, map_location=device)
-    teacher_model = load_params(teacher_model, checkpoint['teacher_resnet'])
+    teacher_model = load_params(teacher_model, checkpoint['teacher_ecapa'])
 
     teacher_model.to(device)
     teacher_model.eval()
